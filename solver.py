@@ -3,6 +3,7 @@ from model import Discriminator
 from torch.autograd import Variable
 from torchvision.utils import save_image
 import torch
+import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 import os
@@ -82,6 +83,10 @@ class Solver(object):
         self.d_optimizer = torch.optim.Adam(self.D.parameters(), self.d_lr, [self.beta1, self.beta2])
         self.print_network(self.G, 'G')
         self.print_network(self.D, 'D')
+
+        if torch.cuda.device_count() > 1:
+            self.G = nn.DataParallel(self.G)
+            self.D = nn.DataParallel(self.D)
             
         self.G.to(self.device)
         self.D.to(self.device)
