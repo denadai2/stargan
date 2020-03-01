@@ -254,8 +254,6 @@ class Solver(object):
             z = torch.randn(1, self.dim_latent).to(self.device)
             trg_domain = torch.randint(self.c_dim, (self.batch_size, 1, 1)).to(self.device)
 
-
-
             # =================================================================================== #
             #                             2. Train the discriminator                              #
             # =================================================================================== #
@@ -266,8 +264,8 @@ class Solver(object):
             d_loss_real = - torch.mean(out_src)
 
             # Compute loss with fake images.
-            sampled_style1 = self.mapper(z, trg_domain)
-            x_fake = self.G(x_real, sampled_style1)
+            sampled_style = self.mapper(z, trg_domain)
+            x_fake = self.G(x_real, sampled_style)
             out_trg = self.D(x_fake.detach(), trg_domain)
             d_loss_fake = torch.mean(out_trg)
 
@@ -293,20 +291,23 @@ class Solver(object):
             
             if (i+1) % self.n_critic == 0:
                 # Original-to-target domain.
-                sampled_style1 = self.mapper(z, trg_domain)
-                x_fake = self.G(x_real, sampled_style1)
+                sampled_style = self.mapper(z, trg_domain)
+                x_fake = self.G(x_real, sampled_style)
                 out_src = self.D(x_real, trg_domain)
                 g_loss_fake = - torch.mean(out_src)
 
                 # Style reconstruction
                 fake_style = self.style_encoder(x_fake, trg_domain)
-                g_loss_sty = torch.mean(torch.abs(sampled_style1 - fake_style))
+                g_loss_sty = torch.mean(torch.abs(sampled_style - fake_style))
 
                 # Style diversification
+                z1 = torch.randn(1, self.dim_latent).to(self.device)
                 z2 = torch.randn(1, self.dim_latent).to(self.device)
+                sampled_style1 = self.mapper(z1, trg_domain)
                 sampled_style2 = self.mapper(z2, trg_domain)
+                x_fake1 = self.G(x_real, sampled_style1)
                 x_fake2 = self.G(x_real, sampled_style2)
-                g_loss_ds = torch.mean(torch.abs(x_fake - x_fake2))
+                g_loss_ds = - torch.mean(torch.abs(x_fake1 - x_fake2))
 
                 # Cycle consistency
                 src_style = self.style_encoder(x_real, trg_domain)
